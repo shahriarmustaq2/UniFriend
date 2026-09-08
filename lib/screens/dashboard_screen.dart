@@ -264,6 +264,84 @@ class _HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox.shrink();
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      children: [
+        _buildSectionHeader(),
+        const SizedBox(height: 16),
+        _buildEmptyState(),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader() {
+    return Row(
+      children: [
+        GlassContainer(
+          opacity: 0.4,
+          borderRadius: BorderRadius.circular(12),
+          padding: const EdgeInsets.all(8),
+          child: const Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.warning,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          'Notices & Deadlines',
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+            color: Colors.white.withValues(alpha: 0.97),
+            shadows: const [Shadow(color: Colors.black, blurRadius: 10)],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.notifications_off_outlined,
+              color: AppColors.warning.withValues(alpha: 0.5),
+              size: 36,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No deadlines yet',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.85),
+              shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Upcoming CTs and assignments\nwill appear here',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.45),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
