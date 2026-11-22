@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
 
-/// Solid midnight background with soft glowing circles and ring shapes.
-/// Intended to sit behind the translucent glass surfaces.
+/// Near-black backdrop with two faint glows, so the glass cards have something
+/// to sit on. Radial gradients rather than blurred shadows, which keeps it cheap
+/// on low-end phones.
 class AppBackground extends StatelessWidget {
   final Widget child;
 
@@ -13,100 +15,33 @@ class AppBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: AppColors.midnight),
-        _buildGlow(
-          alignment: Alignment.topLeft,
-          size: 300,
-          color: AppColors.electricBlue,
-          dx: -80,
-          dy: -90,
-        ),
-        _buildGlow(
-          alignment: Alignment.topRight,
-          size: 220,
-          color: AppColors.cyan,
-          dx: 50,
-          dy: -70,
-        ),
-        _buildGlow(
-          alignment: Alignment.centerRight,
-          size: 260,
-          color: AppColors.periwinkle,
-          dx: 60,
-          dy: 0,
-        ),
-        _buildGlow(
-          alignment: Alignment.bottomLeft,
-          size: 280,
-          color: AppColors.electricBlue,
-          dx: -90,
-          dy: 60,
-        ),
-        _buildGlow(
-          alignment: Alignment.bottomRight,
-          size: 200,
-          color: AppColors.cyan,
-          dx: 40,
-          dy: 80,
-        ),
-        Align(
-          alignment: const Alignment(0.85, -0.15),
-          child: Transform.rotate(
-            angle: -0.3,
-            child: _buildRing(size: 140),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [AppColors.backgroundTop, AppColors.background],
+              stops: [0, 0.55],
+            ),
           ),
         ),
-        Align(
-          alignment: const Alignment(-0.8, 0.55),
-          child: Transform.translate(
-            offset: const Offset(0, 40),
-            child: _buildRing(size: 100),
-          ),
-        ),
+        _glow(const Alignment(-1.1, -1.05), 1.1, AppColors.primary, 0.20),
+        _glow(const Alignment(1.2, 0.9), 0.9, AppColors.cyan, 0.08),
         child,
       ],
     );
   }
 
-  Widget _buildGlow({
-    required Alignment alignment,
-    required double size,
-    required Color color,
-    required double dx,
-    required double dy,
-  }) {
-    return Align(
-      alignment: alignment,
-      child: Transform.translate(
-        offset: Offset(dx, dy),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withValues(alpha: 0.10),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.30),
-                blurRadius: size / 2,
-                spreadRadius: size / 5,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRing({double size = 120}) {
-    return Container(
-      width: size,
-      height: size,
+  Widget _glow(Alignment center, double radius, Color color, double alpha) {
+    return DecoratedBox(
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.07),
-          width: 2,
+        gradient: RadialGradient(
+          center: center,
+          radius: radius,
+          colors: [
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: 0),
+          ],
         ),
       ),
     );

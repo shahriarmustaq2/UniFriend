@@ -1,51 +1,56 @@
 import 'package:flutter/material.dart';
 
+/// The palette: near-black surfaces, soft indigo as the accent, and a muted
+/// gold kept for the numbers that matter most (CGPA, a finished result).
 class AppColors {
   AppColors._();
 
-  // Brand palette - Midnight & Electric
-  static const Color midnight = Color(0xFF0A0E1A);
-  static const Color electricBlue = Color(0xFF4D9FFF);
-  static const Color cyan = Color(0xFF22D3EE);
-  static const Color periwinkle = Color(0xFF8B9CFF);
+  // Base
+  static const Color midnight = Color(0xFF05060B);
+  static const Color background = Color(0xFF05060B);
+  static const Color backgroundTop = Color(0xFF0B0E1C);
+  static const Color surface = Color(0xFF0D1020);
+  static const Color surfaceRaised = Color(0xFF141831);
+  static const Color cardBorder = Color(0xFF1D2338);
 
-  // Primary - electric blue
-  static const Color primary = Color(0xFF4D9FFF);
-  static const Color primaryDark = Color(0xFF1E5FD6);
-  static const Color primaryLight = Color(0xFF14223B);
-  static const Color primaryMedium = Color(0xFF77B4FF);
+  // Accent
+  static const Color electricBlue = Color(0xFF7B93FF);
+  static const Color cyan = Color(0xFF5AD8E6);
+  static const Color periwinkle = Color(0xFFA08BFF);
+  static const Color gold = Color(0xFFE6C47A);
 
-  // Secondary - cyan
-  static const Color secondary = Color(0xFF22D3EE);
-  static const Color secondaryLight = Color(0xFF122733);
+  static const Color primary = Color(0xFF7B93FF);
+  static const Color primaryDark = Color(0xFF3A4BC4);
+  static const Color primaryLight = Color(0xFF141A33);
+  static const Color primaryMedium = Color(0xFFA3B3FF);
 
-  // Surface & Background (midnight)
-  static const Color surface = Color(0xFF12182B);
-  static const Color background = Color(0xFF0A0E1A);
-  static const Color cardBorder = Color(0xFF2A3554);
+  static const Color secondary = Color(0xFF5AD8E6);
+  static const Color secondaryLight = Color(0xFF0F2429);
 
   // Text
-  static const Color textPrimary = Color(0xFFF0F4FF);
-  static const Color textSecondary = Color(0xFFA9B4D4);
-  static const Color textHint = Color(0xFF6C769B);
+  static const Color textPrimary = Color(0xFFEEF1FA);
+  static const Color textSecondary = Color(0xFF9AA3BD);
+  static const Color textHint = Color(0xFF5F6884);
 
   // Status
-  static const Color error = Color(0xFFFF7C93);
-  static const Color errorLight = Color(0xFF3A1B26);
-  static const Color success = Color(0xFF3DDC97);
-  static const Color successLight = Color(0xFF122A20);
-  static const Color warning = Color(0xFFFFB454);
-  static const Color warningLight = Color(0xFF33271A);
+  static const Color error = Color(0xFFFF6B81);
+  static const Color errorLight = Color(0xFF2E1219);
+  static const Color success = Color(0xFF4FD69C);
+  static const Color successLight = Color(0xFF0F241B);
+  static const Color warning = Color(0xFFF5B94F);
+  static const Color warningLight = Color(0xFF2B2112);
 
   // Feature accents
-  static const Color blue = Color(0xFF4D9FFF);
-  static const Color green = Color(0xFF3DDC97);
-  static const Color orange = Color(0xFFFFB454);
-  static const Color purple = Color(0xFF8B9CFF);
-  static const Color pink = Color(0xFFF472B6);
+  static const Color blue = Color(0xFF7B93FF);
+  static const Color green = Color(0xFF4FD69C);
+  static const Color orange = Color(0xFFF5A04F);
+  static const Color purple = Color(0xFFA08BFF);
+  static const Color pink = Color(0xFFF27FB2);
 
-  // Glass - very light frost: small blur, dark translucent tint (no white wash)
-  static const double glassOpacity = 0.5;
-  static const double glassBlur = 5;
-  static const Color glassTint = Color(0xFF1D2642);
+  // Glass. Cards are a translucent tint with a hairline edge. Real blur is
+  // reserved for the few surfaces that float over content (nav bar, sheets).
+  static const double glassOpacity = 0.62;
+  static const double glassBlur = 14;
+  static const Color glassTint = Color(0xFF0E1224);
+  static const Color hairline = Color(0x14FFFFFF);
 }
