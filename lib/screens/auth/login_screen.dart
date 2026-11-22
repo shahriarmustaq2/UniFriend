@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dashboard_screen.dart';
-import '../theme/app_colors.dart';
-import '../widgets/app_background.dart';
-import '../widgets/glass_container.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class LoginScreen extends StatefulWidget {
+import '../../data/errors.dart';
+import '../../providers/core_providers.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/app_background.dart';
+import '../../widgets/feedback.dart';
+import '../../widgets/glass_container.dart';
+import '../../widgets/glass_text_field.dart';
+import 'forgot_password_sheet.dart';
+
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -40,14 +46,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       duration: const Duration(milliseconds: 600),
     );
 
-    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
     _cardScaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic),
     );
-    _cardSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic));
+    _cardSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(
+          CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic),
+        );
 
     _fadeController.forward();
     _cardController.forward();
@@ -65,63 +74,46 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 
   void _toggleMode() {
+    if (_isLoading) return;
     setState(() => _isLogin = !_isLogin);
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
-    try {
-      final supabase = Supabase.instance.client;
-      if (_isLogin) {
-        await supabase.auth.signInWithPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
-      } else {
-        await supabase.auth.signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          data: {'full_name': _nameController.text.trim()},
-        );
-      }
+    final repo = ref.read(authRepositoryProvider);
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
+    try {
+      if (_isLogin) {
+        await repo.signIn(email: email, password: password);
+        // No navigation here: the auth stream fires, the router redirect sees
+        // a session and swaps this screen out.
+      } else {
+        final signedIn = await repo.signUp(
+          email: email,
+          password: password,
+          fullName: _nameController.text.trim(),
+        );
+        if (!signedIn && mounted) {
+          showGlassSnack(
+            context,
+            'Check your inbox to confirm your email, then sign in.',
+            icon: Icons.mark_email_read_outlined,
+          );
+          setState(() => _isLogin = true);
+        }
+      }
+    } catch (error) {
       if (mounted) {
-        Navigator.pushReplacement(
+        showGlassSnack(
           context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 500),
-            pageBuilder: (_, _, _) => const DashboardScreen(),
-            transitionsBuilder: (_, animation, _, child) {
-              return FadeTransition(
-                opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
-                child: child,
-              );
-            },
-          ),
-        );
-      }
-    } on AuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('An error occurred: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          readableError(error),
+          icon: Icons.error_outline_rounded,
+          isError: true,
         );
       }
     } finally {
@@ -132,6 +124,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: AppBackground(
         child: SafeArea(
           child: FadeTransition(
@@ -159,7 +152,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.white.withValues(alpha: 0.92),
-                      shadows: const [Shadow(color: Colors.black, blurRadius: 10)],
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 10),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -205,34 +200,43 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               child: Column(
                 children: [
                   if (!_isLogin) ...[
-                    _buildField(
+                    GlassTextField(
                       controller: _nameController,
                       label: 'Full Name',
                       icon: Icons.person_outline_rounded,
+                      textInputAction: TextInputAction.next,
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Please enter your name';
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Please enter your name';
+                        }
                         return null;
                       },
                     ),
                     const SizedBox(height: 14),
                   ],
-                  _buildField(
+                  GlassTextField(
                     controller: _emailController,
                     label: 'Email',
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Please enter your email';
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Please enter your email';
+                      }
                       if (!v.contains('@')) return 'Please enter a valid email';
                       return null;
                     },
                   ),
                   const SizedBox(height: 14),
-                  _buildField(
+                  GlassTextField(
                     controller: _passwordController,
                     label: 'Password',
                     icon: Icons.lock_outline_rounded,
                     obscureText: _obscurePassword,
+                    textInputAction: _isLogin
+                        ? TextInputAction.done
+                        : TextInputAction.next,
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -241,23 +245,31 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         color: Colors.white70,
                         size: 20,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Please enter your password';
-                      if (v.length < 6) return 'Password must be at least 6 characters';
+                      if (v == null || v.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      if (v.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
                       return null;
                     },
                   ),
                   if (!_isLogin) ...[
                     const SizedBox(height: 14),
-                    _buildField(
+                    GlassTextField(
                       controller: _confirmPasswordController,
                       label: 'Confirm Password',
                       icon: Icons.lock_outline_rounded,
                       obscureText: true,
+                      textInputAction: TextInputAction.done,
                       validator: (v) {
-                        if (v != _passwordController.text) return 'Passwords do not match';
+                        if (v != _passwordController.text) {
+                          return 'Passwords do not match';
+                        }
                         return null;
                       },
                     ),
@@ -265,7 +277,21 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            if (_isLogin)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => showForgotPasswordSheet(
+                          context,
+                          email: _emailController.text.trim(),
+                        ),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  child: const Text('Forgot password?'),
+                ),
+              ),
+            SizedBox(height: _isLogin ? 8 : 24),
             SizedBox(
               height: 52,
               child: ElevatedButton(
@@ -287,7 +313,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _isLogin ? "Don't have an account? " : 'Already have an account? ',
+                  _isLogin
+                      ? "Don't have an account? "
+                      : 'Already have an account? ',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 14,
@@ -333,7 +361,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: _isLogin ? Colors.white.withValues(alpha: 0.92) : Colors.transparent,
+                  color: _isLogin
+                      ? Colors.white.withValues(alpha: 0.92)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: _isLogin
                       ? [
@@ -343,7 +373,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             offset: const Offset(0, 2),
                           ),
                         ]
-                      : [],
+                      : null,
                 ),
                 child: Text(
                   'Sign In',
@@ -366,7 +396,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 duration: const Duration(milliseconds: 250),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: !_isLogin ? Colors.white.withValues(alpha: 0.92) : Colors.transparent,
+                  color: !_isLogin
+                      ? Colors.white.withValues(alpha: 0.92)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: !_isLogin
                       ? [
@@ -376,7 +408,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             offset: const Offset(0, 2),
                           ),
                         ]
-                      : [],
+                      : null,
                 ),
                 child: Text(
                   'Sign Up',
@@ -391,55 +423,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-    bool obscureText = false,
-    Widget? suffixIcon,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      validator: validator,
-      style: const TextStyle(fontSize: 15, color: Colors.white),
-      cursorColor: Colors.white,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: Colors.white70),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.10),
-        labelStyle: const TextStyle(color: Colors.white70, fontSize: 15),
-        hintStyle: const TextStyle(color: Colors.white54, fontSize: 15),
-        prefixIconColor: Colors.white70,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.cyan.withValues(alpha: 0.9), width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-        ),
       ),
     );
   }
